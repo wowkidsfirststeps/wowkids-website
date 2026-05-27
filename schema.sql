@@ -4,6 +4,9 @@
 -- Instructions: Copy and paste this entire file into the
 -- Supabase SQL Editor (Dashboard > SQL Editor > New Query)
 -- and click "Run" to create all tables and policies.
+--
+-- IMPORTANT: This SQL can be safely re-run multiple times.
+-- It uses IF NOT EXISTS / DROP IF EXISTS throughout.
 -- ============================================================
 
 -- 1. ENQUIRIES TABLE
@@ -33,24 +36,21 @@ CREATE TABLE IF NOT EXISTS profiles (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- *** BOTH TABLES MUST EXIST BEFORE CREATING POLICIES THAT REFERENCE THEM ***
--- Enable Row Level Security on enquiries
+-- 3. ENABLE ROW LEVEL SECURITY
 ALTER TABLE enquiries ENABLE ROW LEVEL SECURITY;
-
--- Enable Row Level Security on profiles
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
 
--- 3. RLS POLICIES FOR ENQUIRIES
+-- 4. RLS POLICIES FOR ENQUIRIES
 
--- Policy: Anyone can insert (public enquiry form submission)
+DROP POLICY IF EXISTS "Anyone can insert enquiries" ON enquiries;
 CREATE POLICY "Anyone can insert enquiries"
   ON enquiries
   FOR INSERT
   TO anon
   WITH CHECK (true);
 
--- Policy: Only authenticated admins can view enquiries
+DROP POLICY IF EXISTS "Admins can view enquiries" ON enquiries;
 CREATE POLICY "Admins can view enquiries"
   ON enquiries
   FOR SELECT
@@ -63,7 +63,7 @@ CREATE POLICY "Admins can view enquiries"
     )
   );
 
--- Policy: Only authenticated admins can update enquiries
+DROP POLICY IF EXISTS "Admins can update enquiries" ON enquiries;
 CREATE POLICY "Admins can update enquiries"
   ON enquiries
   FOR UPDATE
@@ -76,7 +76,7 @@ CREATE POLICY "Admins can update enquiries"
     )
   );
 
--- Policy: Only authenticated admins can delete enquiries
+DROP POLICY IF EXISTS "Admins can delete enquiries" ON enquiries;
 CREATE POLICY "Admins can delete enquiries"
   ON enquiries
   FOR DELETE
@@ -90,9 +90,10 @@ CREATE POLICY "Admins can delete enquiries"
   );
 
 
--- 4. RLS POLICIES FOR PROFILES
+-- 5. RLS POLICIES FOR PROFILES
 
 -- Policy: Users can view their own profile
+DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
 CREATE POLICY "Users can view own profile"
   ON profiles
   FOR SELECT
@@ -100,48 +101,52 @@ CREATE POLICY "Users can view own profile"
   USING (id = auth.uid());
 
 -- Policy: Super admins can view all profiles
+DROP POLICY IF EXISTS "Super admins can view all profiles" ON profiles;
 CREATE POLICY "Super admins can view all profiles"
   ON profiles
   FOR SELECT
   TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-        AND profiles.role = 'super_admin'
-        AND profiles.is_approved = true
+      SELECT 1 FROM profiles AS p
+      WHERE p.id = auth.uid()
+        AND p.role = 'super_admin'
+        AND p.is_approved = true
     )
   );
 
 -- Policy: Super admins can update profiles (approve/reject, change roles)
+DROP POLICY IF EXISTS "Super admins can update profiles" ON profiles;
 CREATE POLICY "Super admins can update profiles"
   ON profiles
   FOR UPDATE
   TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-        AND profiles.role = 'super_admin'
-        AND profiles.is_approved = true
+      SELECT 1 FROM profiles AS p
+      WHERE p.id = auth.uid()
+        AND p.role = 'super_admin'
+        AND p.is_approved = true
     )
   );
 
 -- Policy: Super admins can delete profiles
+DROP POLICY IF EXISTS "Super admins can delete profiles" ON profiles;
 CREATE POLICY "Super admins can delete profiles"
   ON profiles
   FOR DELETE
   TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-        AND profiles.role = 'super_admin'
-        AND profiles.is_approved = true
+      SELECT 1 FROM profiles AS p
+      WHERE p.id = auth.uid()
+        AND p.role = 'super_admin'
+        AND p.is_approved = true
     )
   );
 
 -- Policy: Allow insert during sign up (via trigger)
+DROP POLICY IF EXISTS "System can insert profiles" ON profiles;
 CREATE POLICY "System can insert profiles"
   ON profiles
   FOR INSERT
@@ -149,7 +154,7 @@ CREATE POLICY "System can insert profiles"
   WITH CHECK (id = auth.uid());
 
 
--- 5. AUTO-PROFILE CREATION ON SIGNUP
+-- 6. AUTO-PROFILE CREATION ON SIGNUP
 -- This function runs automatically when a new user signs up via Supabase Auth.
 -- It creates a corresponding entry in the profiles table.
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -178,7 +183,7 @@ CREATE TRIGGER on_auth_user_created
   EXECUTE FUNCTION public.handle_new_user();
 
 
--- 6. HELPER FUNCTION FOR CREATING SUPER ADMINS
+-- 7. HELPER FUNCTION FOR CREATING SUPER ADMINS
 -- This function is called by the /api/setup endpoint to create
 -- the very first super admin account. It uses SECURITY DEFINER
 -- to bypass RLS during the initial setup.
@@ -202,35 +207,9 @@ $$;
 
 
 -- ============================================================
--- INITIAL SETUP INSTRUCTIONS
+-- AFTER RUNNING THIS SQL:
 -- ============================================================
--- After running this SQL, you need to create your first
--- Super Admin account. There are two ways:
---
--- === OPTION A: Via the Admin Setup Page (Easier) ===
--- 1. First, go to your website at /admin/setup
+-- 1. Go to your website at /admin/setup
 -- 2. Follow the on-screen instructions to create your Super Admin account
--- 3. The system will automatically set your role and approval
---
--- === OPTION B: Manual via Supabase Dashboard ===
--- 1. Go to Authentication > Users > Add User
--- 2. Enter your email and a strong password
--- 3. Turn ON "Auto Confirm User"
--- 4. Click "Create User"
--- 5. Then go to SQL Editor and run:
---
---    SELECT public.setup_super_admin(
---      (SELECT id FROM auth.users WHERE email = 'your-email@example.com' LIMIT 1),
---      'your-email@example.com',
---      'Your Name'
---    );
---
--- 6. You can now log in at /admin/login with your credentials.
---
--- === INITIAL CREDENTIALS ===
--- Email: [You choose this during setup]
--- Password: [You choose this during setup]
--- Login URL: https://[your-domain].vercel.app/admin/login
---
--- IMPORTANT: Save your login credentials somewhere safe!
+-- 3. Log in at /admin/login
 -- ============================================================

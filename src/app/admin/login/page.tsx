@@ -32,16 +32,27 @@ function LoginForm() {
 
       // Check if user is approved
       if (data.user) {
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from("profiles")
           .select("is_approved, role")
           .eq("id", data.user.id)
           .single();
 
+        if (profileError) {
+          // If there's a database error (e.g. missing RLS policy), surface it
+          await supabase.auth.signOut();
+          console.error("Profile query error:", profileError);
+          setError(
+            "Could not verify your account status. Please make sure the database is properly set up by re-running the schema.sql file in Supabase."
+          );
+          setLoading(false);
+          return;
+        }
+
         if (!profile) {
           await supabase.auth.signOut();
           setError(
-            "Your admin account hasn't been fully set up yet. Please contact the Super Admin to approve your account."
+            "Your admin account hasn't been fully set up yet. Please make sure you have created your account via /admin/setup or contact the Super Admin to approve your account."
           );
           setLoading(false);
           return;
