@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { createAdminClient } from "@/lib/supabase-admin";
 
 export async function POST(request: Request) {
   try {
     const supabase = await createServerSupabaseClient();
 
-    // Check if any super admin already exists
-    const { data: existingSuperAdmins, error: checkError } = await supabase
+    // Use admin client (bypasses RLS) to reliably check if a super admin exists
+    const supabaseAdmin = createAdminClient();
+    const { data: existingSuperAdmins, error: checkError } = await supabaseAdmin
       .from("profiles")
       .select("id")
       .eq("role", "super_admin")
@@ -68,8 +70,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Wait a moment for the trigger to create the profile, then call the setup function
-    // The trigger will create a basic profile, and the setup function will upgrade it
+    // Call the setup_super_admin RPC function (SECURITY DEFINER, bypasses RLS)
     const { error: setupError } = await supabase.rpc("setup_super_admin", {
       target_user_id: authData.user.id,
       target_email: email,
@@ -77,18 +78,17 @@ export async function POST(request: Request) {
     });
 
     if (setupError) {
-      // If the RPC call failed (e.g., the function doesn't exist yet),
-      // try direct update as fallback
-      const { error: updateError } = await supabase
+      // If the RPC call failed, use admin client as fallback (bypasses RLS)
+      const { error: updateError } = await supabaseAdmin
         .from("profiles")
-        .update({ role: "super_admin", is_approved: true })
+        .update({ role: "super_admin", is_approved: true, full_name: fullName || "Super Admin" })
         .eq("id", authData.user.id);
 
       if (updateError) {
         return NextResponse.json(
           {
             error:
-              "Account created but couldn't set admin role. Please run the SQL update from the deployment guide manually.",
+              "Account created but couldn't set admin role. Please run the SQL from schema.sql in Supabase first.",
           },
           { status: 500 }
         );
@@ -99,11 +99,8 @@ export async function POST(request: Request) {
       success: true,
       message:
         "Super Admin account created successfully! You can now log in at /admin/login with your email and password.",
-      credentials: {
-        loginUrl: "/admin/login",
-        email: email,
-        note: "Please save these credentials securely.",
-      },
+      loginUrl: "/admin/login",
+      email: email,
     });
   } catch (err) {
     return NextResponse.json(

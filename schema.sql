@@ -42,6 +42,8 @@ ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
 
 -- 4. RLS POLICIES FOR ENQUIRIES
+-- Uses is_admin() SECURITY DEFINER function to safely check
+-- the profiles table without triggering RLS recursion.
 
 DROP POLICY IF EXISTS "Anyone can insert enquiries" ON enquiries;
 CREATE POLICY "Anyone can insert enquiries"
@@ -55,42 +57,62 @@ CREATE POLICY "Admins can view enquiries"
   ON enquiries
   FOR SELECT
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-        AND profiles.is_approved = true
-    )
-  );
+  USING (is_admin());
 
 DROP POLICY IF EXISTS "Admins can update enquiries" ON enquiries;
 CREATE POLICY "Admins can update enquiries"
   ON enquiries
   FOR UPDATE
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-        AND profiles.is_approved = true
-    )
-  );
+  USING (is_admin());
 
 DROP POLICY IF EXISTS "Admins can delete enquiries" ON enquiries;
 CREATE POLICY "Admins can delete enquiries"
   ON enquiries
   FOR DELETE
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-        AND profiles.is_approved = true
-    )
+  USING (is_admin());
+
+
+-- 5. SECURITY DEFINER HELPER FUNCTIONS
+-- These functions bypass RLS to avoid infinite recursion when
+-- RLS policies reference the profiles table.
+
+-- Check if the current user is an approved admin (any role)
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = ''
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid()
+      AND is_approved = true
   );
+END;
+$$;
+
+-- Check if the current user is a super admin
+CREATE OR REPLACE FUNCTION public.is_super_admin()
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = ''
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid()
+      AND role = 'super_admin'
+      AND is_approved = true
+  );
+END;
+$$;
 
 
--- 5. RLS POLICIES FOR PROFILES
+-- 6. RLS POLICIES FOR PROFILES
+-- NOTE: All policies that reference the profiles table use
+-- SECURITY DEFINER helper functions to avoid infinite recursion.
 
 -- Policy: Users can view their own profile
 DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
@@ -106,14 +128,7 @@ CREATE POLICY "Super admins can view all profiles"
   ON profiles
   FOR SELECT
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles AS p
-      WHERE p.id = auth.uid()
-        AND p.role = 'super_admin'
-        AND p.is_approved = true
-    )
-  );
+  USING (is_super_admin());
 
 -- Policy: Super admins can update profiles (approve/reject, change roles)
 DROP POLICY IF EXISTS "Super admins can update profiles" ON profiles;
@@ -121,14 +136,7 @@ CREATE POLICY "Super admins can update profiles"
   ON profiles
   FOR UPDATE
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles AS p
-      WHERE p.id = auth.uid()
-        AND p.role = 'super_admin'
-        AND p.is_approved = true
-    )
-  );
+  USING (is_super_admin());
 
 -- Policy: Super admins can delete profiles
 DROP POLICY IF EXISTS "Super admins can delete profiles" ON profiles;
@@ -136,14 +144,7 @@ CREATE POLICY "Super admins can delete profiles"
   ON profiles
   FOR DELETE
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles AS p
-      WHERE p.id = auth.uid()
-        AND p.role = 'super_admin'
-        AND p.is_approved = true
-    )
-  );
+  USING (is_super_admin());
 
 -- Policy: Allow insert during sign up (via trigger)
 DROP POLICY IF EXISTS "System can insert profiles" ON profiles;
@@ -154,7 +155,7 @@ CREATE POLICY "System can insert profiles"
   WITH CHECK (id = auth.uid());
 
 
--- 6. AUTO-PROFILE CREATION ON SIGNUP
+-- 7. AUTO-PROFILE CREATION ON SIGNUP
 -- This function runs automatically when a new user signs up via Supabase Auth.
 -- It creates a corresponding entry in the profiles table.
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -183,7 +184,7 @@ CREATE TRIGGER on_auth_user_created
   EXECUTE FUNCTION public.handle_new_user();
 
 
--- 7. HELPER FUNCTION FOR CREATING SUPER ADMINS
+-- 8. HELPER FUNCTION FOR CREATING SUPER ADMINS
 -- This function is called by the /api/setup endpoint to create
 -- the very first super admin account. It uses SECURITY DEFINER
 -- to bypass RLS during the initial setup.

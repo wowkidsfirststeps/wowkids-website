@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { createAdminClient } from "@/lib/supabase-admin";
 import { redirect } from "next/navigation";
 import UsersManagement from "./UsersManagement";
 
@@ -6,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminUsersPage() {
   const supabase = await createServerSupabaseClient();
+  const supabaseAdmin = createAdminClient();
 
   const {
     data: { user },
@@ -15,8 +17,8 @@ export default async function AdminUsersPage() {
     redirect("/admin/login");
   }
 
-  // Check if current user is super_admin
-  const { data: currentProfile } = await supabase
+  // Use admin client (bypasses RLS) to check if current user is super_admin
+  const { data: currentProfile } = await supabaseAdmin
     .from("profiles")
     .select("role")
     .eq("id", user.id)
@@ -35,8 +37,8 @@ export default async function AdminUsersPage() {
     );
   }
 
-  // Fetch all profiles
-  const { data: profiles } = await supabase
+  // Fetch all profiles (using admin client to bypass RLS)
+  const { data: profiles } = await supabaseAdmin
     .from("profiles")
     .select("*")
     .order("created_at", { ascending: false });
