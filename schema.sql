@@ -41,42 +41,10 @@ ALTER TABLE enquiries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
 
--- 4. RLS POLICIES FOR ENQUIRIES
--- Uses is_admin() SECURITY DEFINER function to safely check
--- the profiles table without triggering RLS recursion.
-
-DROP POLICY IF EXISTS "Anyone can insert enquiries" ON enquiries;
-CREATE POLICY "Anyone can insert enquiries"
-  ON enquiries
-  FOR INSERT
-  TO anon
-  WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Admins can view enquiries" ON enquiries;
-CREATE POLICY "Admins can view enquiries"
-  ON enquiries
-  FOR SELECT
-  TO authenticated
-  USING (is_admin());
-
-DROP POLICY IF EXISTS "Admins can update enquiries" ON enquiries;
-CREATE POLICY "Admins can update enquiries"
-  ON enquiries
-  FOR UPDATE
-  TO authenticated
-  USING (is_admin());
-
-DROP POLICY IF EXISTS "Admins can delete enquiries" ON enquiries;
-CREATE POLICY "Admins can delete enquiries"
-  ON enquiries
-  FOR DELETE
-  TO authenticated
-  USING (is_admin());
-
-
--- 5. SECURITY DEFINER HELPER FUNCTIONS
--- These functions bypass RLS to avoid infinite recursion when
--- RLS policies reference the profiles table.
+-- 4. SECURITY DEFINER HELPER FUNCTIONS
+-- These functions must be created BEFORE the policies that use them.
+-- They bypass RLS to avoid infinite recursion when RLS policies
+-- reference the profiles table.
 
 -- Check if the current user is an approved admin (any role)
 CREATE OR REPLACE FUNCTION public.is_admin()
@@ -108,6 +76,39 @@ BEGIN
   );
 END;
 $$;
+
+
+-- 5. RLS POLICIES FOR ENQUIRIES
+-- Uses is_admin() SECURITY DEFINER function to safely check
+-- the profiles table without triggering RLS recursion.
+
+DROP POLICY IF EXISTS "Anyone can insert enquiries" ON enquiries;
+CREATE POLICY "Anyone can insert enquiries"
+  ON enquiries
+  FOR INSERT
+  TO anon
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admins can view enquiries" ON enquiries;
+CREATE POLICY "Admins can view enquiries"
+  ON enquiries
+  FOR SELECT
+  TO authenticated
+  USING (is_admin());
+
+DROP POLICY IF EXISTS "Admins can update enquiries" ON enquiries;
+CREATE POLICY "Admins can update enquiries"
+  ON enquiries
+  FOR UPDATE
+  TO authenticated
+  USING (is_admin());
+
+DROP POLICY IF EXISTS "Admins can delete enquiries" ON enquiries;
+CREATE POLICY "Admins can delete enquiries"
+  ON enquiries
+  FOR DELETE
+  TO authenticated
+  USING (is_admin());
 
 
 -- 6. RLS POLICIES FOR PROFILES
