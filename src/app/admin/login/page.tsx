@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { Suspense, useState, FormEvent } from "react";
 import { createClient } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
-import { Lock, Eye, EyeOff, Loader2, LogIn, AlertTriangle } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Lock, Eye, EyeOff, Loader2, LogIn } from "lucide-react";
 
-export default function AdminLoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
@@ -157,5 +156,19 @@ export default function AdminLoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }
