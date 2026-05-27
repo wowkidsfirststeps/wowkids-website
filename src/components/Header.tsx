@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Menu, X, Phone, Mail } from "lucide-react";
+import { contact } from "@/lib/contact-config";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -20,17 +21,19 @@ export default function Header() {
       {/* Top bar */}
       <div className="hidden lg:block bg-primary-500 text-white text-sm">
         <div className="max-w-7xl mx-auto px-4 py-1.5 flex items-center justify-end gap-6">
-          <a href="tel:+919392669346" className="flex items-center gap-1.5 hover:text-primary-100 transition-colors">
-            <Phone className="w-3.5 h-3.5" />
-            +91-9392669346
-          </a>
-          <a href="tel:+917013319920" className="flex items-center gap-1.5 hover:text-primary-100 transition-colors">
-            <Phone className="w-3.5 h-3.5" />
-            +91-7013319920
-          </a>
-          <a href="mailto:info@wowkidsfirststeps.com" className="flex items-center gap-1.5 hover:text-primary-100 transition-colors">
+          {contact.phones.map((phone) => (
+            <a
+              key={phone.href}
+              href={`tel:${phone.href}`}
+              className="flex items-center gap-1.5 hover:text-primary-100 transition-colors"
+            >
+              <Phone className="w-3.5 h-3.5" />
+              {phone.label}
+            </a>
+          ))}
+          <a href={`mailto:${contact.email}`} className="flex items-center gap-1.5 hover:text-primary-100 transition-colors">
             <Mail className="w-3.5 h-3.5" />
-            info@wowkidsfirststeps.com
+            {contact.email}
           </a>
         </div>
       </div>
@@ -47,10 +50,10 @@ export default function Header() {
             />
             <div>
               <h1 className="text-lg font-bold text-primary-600 leading-tight">
-                WowKids
+                {contact.schoolShortName}
               </h1>
               <p className="text-[10px] font-medium text-gray-500 leading-tight">
-                First Steps
+                {contact.tagline}
               </p>
             </div>
           </Link>
@@ -106,14 +109,12 @@ export default function Header() {
           ))}
           {/* Mobile contact info */}
           <div className="pt-3 mt-3 border-t border-gray-100 space-y-2 text-sm text-gray-500">
-            <a href="tel:+919392669346" className="flex items-center gap-2">
-              <Phone className="w-4 h-4 text-primary-500" />
-              +91-9392669346
-            </a>
-            <a href="tel:+917013319920" className="flex items-center gap-2">
-              <Phone className="w-4 h-4 text-primary-500" />
-              +91-7013319920
-            </a>
+            {contact.phones.map((phone) => (
+              <a key={phone.href} href={`tel:${phone.href}`} className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-primary-500" />
+                {phone.label}
+              </a>
+            ))}
           </div>
         </nav>
       </div>

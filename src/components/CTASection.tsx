@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Phone } from "lucide-react";
+import { contact } from "@/lib/contact-config";
 
 export default function CTASection() {
   return (
@@ -27,7 +28,7 @@ export default function CTASection() {
             <ArrowRight className="w-4 h-4" />
           </Link>
           <a
-            href="tel:+919392669346"
+            href={`tel:${contact.phones[0].href}`}
             className="inline-flex items-center justify-center gap-2 border-2 border-white/30 text-white px-8 py-3.5 rounded-xl text-base font-semibold hover:bg-white/10 hover:border-white/50 transition-all duration-200"
           >
             <Phone className="w-4 h-4" />

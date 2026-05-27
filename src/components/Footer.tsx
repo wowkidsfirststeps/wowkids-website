@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Phone, Mail, MapPin, Heart } from "lucide-react";
+import { contact } from "@/lib/contact-config";
 
 export default function Footer() {
   return (
@@ -15,8 +16,8 @@ export default function Footer() {
                 className="h-10 w-10 rounded-full object-cover"
               />
               <div>
-                <h3 className="text-lg font-bold text-white">WowKids</h3>
-                <p className="text-xs text-gray-400">First Steps</p>
+                <h3 className="text-lg font-bold text-white">{contact.schoolShortName}</h3>
+                <p className="text-xs text-gray-400">{contact.tagline}</p>
               </div>
             </div>
             <p className="text-sm leading-relaxed text-gray-400">
@@ -54,44 +55,37 @@ export default function Footer() {
             <ul className="space-y-3">
               <li>
                 <a
-                  href="https://maps.app.goo.gl/7aUEYAUNFsd2h6qu6"
+                  href={contact.mapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-start gap-2 text-sm text-gray-400 hover:text-primary-400 transition-colors"
                 >
                   <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary-500" />
                   <span>
-                    Road no: 6, Plot No 42, Prashanth Nagar,
+                    {contact.address.line1}
                     <br />
-                    Medipally, Uppal, Hyderabad - 500098
+                    {contact.address.line2} {contact.address.city}
                   </span>
                 </a>
               </li>
+              {contact.phones.map((phone) => (
+                <li key={phone.href}>
+                  <a
+                    href={`tel:${phone.href}`}
+                    className="flex items-center gap-2 text-sm text-gray-400 hover:text-primary-400 transition-colors"
+                  >
+                    <Phone className="w-4 h-4 flex-shrink-0 text-primary-500" />
+                    {phone.label}
+                  </a>
+                </li>
+              ))}
               <li>
                 <a
-                  href="tel:+919392669346"
-                  className="flex items-center gap-2 text-sm text-gray-400 hover:text-primary-400 transition-colors"
-                >
-                  <Phone className="w-4 h-4 flex-shrink-0 text-primary-500" />
-                  +91-9392669346
-                </a>
-              </li>
-              <li>
-                <a
-                  href="tel:+917013319920"
-                  className="flex items-center gap-2 text-sm text-gray-400 hover:text-primary-400 transition-colors"
-                >
-                  <Phone className="w-4 h-4 flex-shrink-0 text-primary-500" />
-                  +91-7013319920
-                </a>
-              </li>
-              <li>
-                <a
-                  href="mailto:info@wowkidsfirststeps.com"
+                  href={`mailto:${contact.email}`}
                   className="flex items-center gap-2 text-sm text-gray-400 hover:text-primary-400 transition-colors"
                 >
                   <Mail className="w-4 h-4 flex-shrink-0 text-primary-500" />
-                  info@wowkidsfirststeps.com
+                  {contact.email}
                 </a>
               </li>
             </ul>
@@ -100,7 +94,7 @@ export default function Footer() {
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center">
           <p className="text-sm text-gray-500 flex items-center justify-center gap-1">
-            &copy; {new Date().getFullYear()} WowKids First Steps. All rights reserved.
+            &copy; {new Date().getFullYear()} {contact.schoolName}. All rights reserved.
             Made with <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" /> for every child.
           </p>
         </div>

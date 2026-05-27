@@ -1,10 +1,5 @@
 import { Phone, Mail, MapPin, Clock, Calendar } from "lucide-react";
-
-const workingHours = [
-  { day: "Monday – Friday", hours: "8:00 AM – 6:30 PM" },
-  { day: "Saturday", hours: "8:00 AM – 1:00 PM" },
-  { day: "Sunday", hours: "Closed" },
-];
+import { contact } from "@/lib/contact-config";
 
 export default function ContactPage() {
   return (
@@ -34,14 +29,14 @@ export default function ContactPage() {
                   Our Address
                 </h2>
                 <p className="text-gray-600 leading-relaxed">
-                  Road no: 6, Plot No 42, Prashanth Nagar,
+                  {contact.address.line1}
                   <br />
-                  Medipally, Uppal,
+                  {contact.address.line2}
                   <br />
-                  Hyderabad, Telangana 500098
+                  {contact.address.city}
                 </p>
                 <a
-                  href="https://maps.app.goo.gl/7aUEYAUNFsd2h6qu6"
+                  href={contact.mapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 text-primary-600 font-medium text-sm mt-3 hover:text-primary-700 transition-colors"
@@ -57,7 +52,7 @@ export default function ContactPage() {
                   Working Hours
                 </h2>
                 <div className="space-y-2">
-                  {workingHours.map((item) => (
+                  {contact.workingHours.map((item) => (
                     <div
                       key={item.day}
                       className="flex items-center justify-between text-sm"
@@ -75,26 +70,22 @@ export default function ContactPage() {
                   Contact Information
                 </h2>
                 <div className="space-y-3">
+                  {contact.phones.map((phone) => (
+                    <a
+                      key={phone.href}
+                      href={`tel:${phone.href}`}
+                      className="flex items-center gap-3 text-gray-600 hover:text-primary-600 transition-colors"
+                    >
+                      <Phone className="w-4 h-4 text-primary-500" />
+                      <span>{phone.label}</span>
+                    </a>
+                  ))}
                   <a
-                    href="tel:+919392669346"
-                    className="flex items-center gap-3 text-gray-600 hover:text-primary-600 transition-colors"
-                  >
-                    <Phone className="w-4 h-4 text-primary-500" />
-                    <span>+91-9392669346</span>
-                  </a>
-                  <a
-                    href="tel:+917013319920"
-                    className="flex items-center gap-3 text-gray-600 hover:text-primary-600 transition-colors"
-                  >
-                    <Phone className="w-4 h-4 text-primary-500" />
-                    <span>+91-7013319920</span>
-                  </a>
-                  <a
-                    href="mailto:info@wowkidsfirststeps.com"
+                    href={`mailto:${contact.email}`}
                     className="flex items-center gap-3 text-gray-600 hover:text-primary-600 transition-colors"
                   >
                     <Mail className="w-4 h-4 text-primary-500" />
-                    <span>info@wowkidsfirststeps.com</span>
+                    <span>{contact.email}</span>
                   </a>
                 </div>
               </div>
@@ -103,7 +94,7 @@ export default function ContactPage() {
             {/* Right column - Map */}
             <div className="h-[400px] md:h-auto rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
               <iframe
-                src="https://www.google.com/maps?q=Plot+No+42+Road+no+6+Prashanth+Nagar+Medipally+Uppal+Hyderabad+500098&output=embed"
+                src={contact.mapsEmbedUrl}
                 width="100%"
                 height="100%"
                 style={{ border: 0, minHeight: "400px" }}
