@@ -30,29 +30,30 @@ function LoginForm() {
         throw new Error(authError.message);
       }
 
-      // Check if user is approved
+      // Check if user is approved via server API (bypasses RLS using service_role key)
       if (data.user) {
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("is_approved, role")
-          .eq("id", data.user.id)
-          .single();
+        const res = await fetch("/api/auth/check-profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: data.user.email }),
+        });
+        const result = await res.json();
 
-        if (profileError) {
-          // If there's a database error (e.g. missing RLS policy), surface it
+        if (!res.ok) {
           await supabase.auth.signOut();
-          console.error("Profile query error:", profileError);
-          setError(
-            "Could not verify your account status. Please make sure the database is properly set up by re-running the schema.sql file in Supabase."
-          );
+          const errorMsg = result?.error || "Could not verify your account status.";
+          const hint = result?.hint || "";
+          setError(`${errorMsg}${hint ? ` ${hint}` : ""}`);
           setLoading(false);
           return;
         }
 
+        const profile = result.profile;
+
         if (!profile) {
           await supabase.auth.signOut();
           setError(
-            "Your admin account hasn't been fully set up yet. Please make sure you have created your account via /admin/setup or contact the Super Admin to approve your account."
+            "Your admin account hasn't been fully set up yet. Please make sure you have created your account via /admin/setup."
           );
           setLoading(false);
           return;
