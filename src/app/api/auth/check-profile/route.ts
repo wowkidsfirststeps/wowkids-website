@@ -56,8 +56,9 @@ export async function POST(request: Request) {
     });
   } catch (err) {
     console.error("Check-profile error:", err);
+    const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json(
-      { error: "An unexpected error occurred while checking your account status." },
+      { error: message },
       { status: 500 }
     );
   }
